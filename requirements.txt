@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+requests
+azure-identity
+azure-mgmt-resourcegraph
+azure-mgmt-monitor
+azure-mgmt-resource
+python-dotenv
+mcp
+azure-mgmt-monitor
