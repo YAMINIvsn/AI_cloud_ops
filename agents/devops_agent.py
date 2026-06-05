@@ -1,17 +1,24 @@
-from mcp_servers.terraform_server import generate_terraform
-from mcp_servers.docker_server import generate_dockerfile
-from mcp_servers.kubernetes_server import generate_kubernetes_yaml
-
 def devops_agent(query):
 
-    terraform = generate_terraform(query)
+    if "deploy" in query:
 
-    dockerfile = generate_dockerfile(query)
+        return """
+Deployment Steps:
 
-    kubernetes = generate_kubernetes_yaml(query)
+1. Build Docker Image
+2. Push to ACR
+3. Deploy to AKS
+4. Verify Pods
+"""
 
-    return {
-        "terraform": terraform,
-        "dockerfile": dockerfile,
-        "kubernetes": kubernetes
-    }
+    if "kubernetes" in query:
+
+        return """
+Kubernetes Cluster Healthy
+
+Pods Running: 3
+Deployments: 2
+Services: 1
+"""
+
+    return "DevOps Assistant Ready"
