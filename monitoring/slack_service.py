@@ -1,7 +1,7 @@
 import requests
 import os
 
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+SLACK_WEBHOOK_URL= os.getenv("SLACK_WEBHOOK_URL")
 AZURE_CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
 
 

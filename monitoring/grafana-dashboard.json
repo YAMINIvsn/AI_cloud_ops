@@ -1,0 +1,68 @@
+{
+  "title": "CloudOps AI Dashboard",
+  "uid": "cloudops-main",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request Rate (req/min)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "rate(http_requests_total{job=\"cloudops-backend\"}[1m]) * 60",
+        "legendFormat": "{{method}} {{handler}}"
+      }],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } }
+    },
+    {
+      "id": 2,
+      "title": "P95 Latency (seconds)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"cloudops-backend\"}[5m]))",
+        "legendFormat": "p95 latency"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "HTTP 5xx Error Rate",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "rate(http_requests_total{job=\"cloudops-backend\", status=~\"5..\"}[5m])",
+        "legendFormat": "5xx errors/s"
+      }],
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "#ef4444", "mode": "fixed" } } }
+    },
+    {
+      "id": 4,
+      "title": "Backend Uptime",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 8, "w": 6, "h": 8 },
+      "targets": [{
+        "expr": "up{job=\"cloudops-backend\"}",
+        "legendFormat": "Backend"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Total Requests",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 8, "w": 6, "h": 8 },
+      "targets": [{
+        "expr": "sum(http_requests_total{job=\"cloudops-backend\"})",
+        "legendFormat": "Total"
+      }]
+    }
+  ]
+}

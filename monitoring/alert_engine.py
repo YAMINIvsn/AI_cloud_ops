@@ -1,5 +1,3 @@
-from sklearn import metrics
-
 from mcp_servers.slack_server import send_slack_alert
 from ai_engine.predictive_engine import (
     predict_system_health,
@@ -10,29 +8,26 @@ from ai_engine.remediation_engine import (
     restart_kubernetes_deployment,
     scale_kubernetes
 )
+
+
 def check_cloud_health(metrics):
 
     alerts = []
 
-    if metrics["cpu_usage"] > 80:
+    if metrics.get("total_resources", 0) > 30:
 
         alerts.append(
-            f"🚨 HIGH CPU USAGE: {metrics['cpu_usage']}%"
+            f"Large Azure footprint: {metrics.get('total_resources', 0)} resources"
         )
 
-    if metrics["memory_usage"] > 85:
+    if metrics.get("security_score", 100) < 85:
 
         alerts.append(
-            f"🚨 HIGH MEMORY USAGE: {metrics['memory_usage']}%"
-        )
-
-    if metrics["disk_usage"] > 90:
-
-        alerts.append(
-            f"🚨 HIGH DISK USAGE: {metrics['disk_usage']}%"
+            f"Security score needs review: {metrics.get('security_score', 0)}%"
         )
 
     return alerts
+
 
 def process_alerts(metrics):
 
@@ -58,11 +53,11 @@ def process_alerts(metrics):
             f"AI Recommendation: {recommendation}"
         )
 
-    if metrics["cpu_usage"] > 90:
+    if metrics.get("container_apps", 0) > 0:
 
         scale_kubernetes()
 
-    if metrics["memory_usage"] > 90:
+    if metrics.get("security_score", 100) < 70:
 
         restart_kubernetes_deployment()
 

@@ -1,31 +1,28 @@
-from mcp_servers.cloud_mcp_server import (
-    get_live_metrics
-)
+from mcp_servers.cloud_mcp_server import get_resource_summary
 
 def predictive_agent():
 
-    metrics = get_live_metrics()
+    summary = get_resource_summary()
+    total_resources = summary.get("total_resources", 0)
 
-    cpu = metrics["cpu_usage"]
-
-    if cpu > 80:
+    if total_resources > 30:
 
         return {
             "risk": "HIGH",
             "prediction":
-            "CPU likely to exceed threshold in next 30 mins",
+            "Resource count is growing and should be reviewed",
             "action":
-            "Scale container replicas"
+            "Audit unused resources and ownership"
         }
 
-    elif cpu > 60:
+    elif total_resources > 15:
 
         return {
             "risk": "MEDIUM",
             "prediction":
-            "Moderate resource pressure detected",
+            "Moderate Azure footprint detected",
             "action":
-            "Monitor workload"
+            "Tag resources and review cost centers"
         }
 
     else:

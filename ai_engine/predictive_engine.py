@@ -5,26 +5,19 @@ def predict_system_health(metrics):
 
     predictions = []
 
-    cpu = metrics["cpu_usage"]
-    memory = metrics["memory_usage"]
-    disk = metrics["disk_usage"]
+    total_resources = metrics.get("total_resources", 0)
+    security_score = metrics.get("security_score", 100)
 
-    if cpu > 80:
+    if total_resources > 30:
 
         predictions.append(
-            "High probability of CPU bottleneck."
+            "Large resource footprint detected."
         )
 
-    if memory > 85:
+    if security_score < 85:
 
         predictions.append(
-            "Possible memory saturation detected."
-        )
-
-    if disk > 90:
-
-        predictions.append(
-            "Disk capacity critical."
+            "Security posture should be reviewed."
         )
 
     return predictions
@@ -44,16 +37,16 @@ def recommend_scaling(metrics):
 
     recommendations = []
 
-    if metrics["cpu_usage"] > 75:
+    if metrics.get("container_apps", 0) > 0:
 
         recommendations.append(
-            "Scale AKS nodes horizontally."
+            "Review Container Apps replica settings and autoscale rules."
         )
 
-    if metrics["memory_usage"] > 80:
+    if metrics.get("total_resources", 0) > 20:
 
         recommendations.append(
-            "Increase container memory limits."
+            "Group resources by environment and owner tags."
         )
 
     return recommendations

@@ -1,0 +1,43 @@
+groups:
+  - name: cloudops_alerts
+    rules:
+
+      # API is down
+      - alert: BackendDown
+        expr: up{job="cloudops-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CloudOps backend is down"
+          description: "The FastAPI backend has been unreachable for more than 1 minute."
+
+      # High request latency
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="cloudops-backend"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency detected"
+          description: "95th percentile latency is above 2s for the past 5 minutes."
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{job="cloudops-backend", status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP 5xx error rate"
+          description: "More than 5% of requests are returning 5xx errors."
+
+      # Too many requests (possible spike or attack)
+      - alert: HighRequestRate
+        expr: rate(http_requests_total{job="cloudops-backend"}[1m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusually high request rate"
+          description: "Request rate exceeded 100 req/min for 2 consecutive minutes."

@@ -2,34 +2,24 @@ from agents.operations_agent import operations_agent
 from agents.finops_agent import finops_agent
 from agents.security_agent import security_agent
 from agents.devops_agent import devops_agent
+from agents.combined_agent import combined_agent
+from agents.llm import ask_llm
 
 # ---------------------------------------------------------------------------
-# Guardrail keyword list — only these topics are allowed through to agents.
-# Anything outside this set gets blocked before any LLM call is made.
+# GUARDRAIL — Prompt injection blocklist only
+# Topic routing is now handled by the LLM classifier, not keywords.
 # ---------------------------------------------------------------------------
-ALLOWED_TOPICS = [
-    # infrastructure & cloud
-    "azure", "cloud", "resource", "subscription", "tenant",
-    # compute & containers
-    "cpu", "memory", "disk", "node", "pod", "container", "aks",
-    "kubernetes", "docker", "deploy", "deployment", "replica", "scale",
-    # cost & billing
-    "cost", "bill", "budget", "spend", "pricing", "saving", "estimate",
-    # security
-    "security", "alert", "threat", "vulnerability", "compliance",
-    "score", "warning", "critical",
-    # devops & infra-as-code
-    "terraform", "pipeline", "ci", "cd", "devops", "release",
-    # monitoring & ops
-    "metric", "monitor", "log", "trace", "health", "status",
-    "uptime", "latency", "throughput", "incident",
-    # storage & networking
-    "storage", "blob", "network", "firewall", "vnet", "subnet",
-    # databases
-    "database", "db", "postgres", "mysql", "server",
-    # general ops
-    "service", "app", "registry", "backup", "restore",
+INJECTION_PATTERNS = [
+    "ignore previous", "ignore all", "forget instructions",
+    "forget your instructions", "you are now", "pretend you are",
+    "jailbreak", "dan mode", "override", "disregard",
+    "do anything now", "bypass",
 ]
+
+INJECTION_REPLY = (
+    "🚫 That request cannot be processed. "
+    "Please ask a genuine question about your cloud infrastructure."
+)
 
 OUT_OF_SCOPE_REPLY = (
     "⚠️ I'm a CloudOps AI assistant. I can only answer questions about "
@@ -37,34 +27,60 @@ OUT_OF_SCOPE_REPLY = (
     "Please ask something related to your cloud environment."
 )
 
+CLASSIFIER_PROMPT = """
+You are a router for a CloudOps AI assistant. Classify the user query into exactly one of these categories:
 
-def is_in_scope(query: str) -> bool:
-    """Return True only if the query contains at least one allowed keyword."""
+- finops       → cost, billing, spend, budget, savings, forecast, pricing, INR
+- security     → security score, alerts, threats, compliance, vulnerabilities, findings
+- devops       → deploy, docker, kubernetes, AKS, terraform, pipeline, CI/CD
+- operations   → resources, metrics, CPU, memory, nodes, status, start, stop, restart
+- combined     → query spans multiple topics (cost + security, operations + forecast, etc.)
+- out_of_scope → completely unrelated to cloud infrastructure
+
+Reply with ONLY the single category word, nothing else.
+"""
+
+
+def is_injection(query: str) -> bool:
     q = query.lower()
-    return any(keyword in q for keyword in ALLOWED_TOPICS)
+    return any(pattern in q for pattern in INJECTION_PATTERNS)
+
+
+def guardrail_check(query: str) -> str | None:
+    if is_injection(query):
+        return INJECTION_REPLY
+    return None
+
+
+def classify_intent(query: str) -> str:
+    """Use the LLM to classify the query intent — much more flexible than keywords."""
+    try:
+        result = ask_llm(CLASSIFIER_PROMPT, query, model=None)
+        category = result.strip().lower().split()[0]
+        valid = {"finops", "security", "devops", "operations", "combined", "out_of_scope"}
+        return category if category in valid else "operations"
+    except Exception:
+        return "operations"
 
 
 def router_agent(query: str) -> str:
-    # --- Guardrail check FIRST — before any agent or LLM is called ---
-    if not is_in_scope(query):
+    # Guardrail: injection check only
+    block = guardrail_check(query)
+    if block:
+        return block
+
+    # LLM-based intent classification
+    intent = classify_intent(query)
+
+    if intent == "out_of_scope":
         return OUT_OF_SCOPE_REPLY
-
-    q = query.lower()
-
-    if (
-        "deploy" in q
-        or "docker" in q
-        or "terraform" in q
-        or "kubernetes" in q
-        or "aks" in q
-    ):
-        return devops_agent(q)
-
-    elif "cost" in q or "bill" in q or "spend" in q or "budget" in q:
-        return finops_agent(q)
-
-    elif "security" in q or "alert" in q or "threat" in q or "compliance" in q:
-        return security_agent(q)
-
+    elif intent == "finops":
+        return finops_agent(query)
+    elif intent == "security":
+        return security_agent(query)
+    elif intent == "devops":
+        return devops_agent(query)
+    elif intent == "combined":
+        return combined_agent(query)
     else:
-        return operations_agent(q)
+        return operations_agent(query)

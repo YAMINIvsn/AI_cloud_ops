@@ -1,0 +1,10 @@
+# Auto-configures Prometheus as Grafana datasource on startup
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    isDefault: true
+    access: proxy
+    editable: false
